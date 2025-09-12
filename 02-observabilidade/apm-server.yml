@@ -1,0 +1,15 @@
+apm-server:
+  host: "0.0.0.0:8200"
+  rum:
+    enabled: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  protocol: "http"
+
+kibana:
+  enabled: true
+  host: "kibana:5601"
+
+queue: { }
+logging.level: info

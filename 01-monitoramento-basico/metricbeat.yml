@@ -1,0 +1,39 @@
+metricbeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: true
+
+output.elasticsearch:
+  hosts: ["http://${ELASTICSEARCH_HOST:elasticsearch}:${ELASTICSEARCH_PORT:9200}"]
+
+setup.kibana:
+  host: "kibana:5601"
+
+processors:
+  - add_host_metadata: ~
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+modules:
+  - module: docker
+    metricsets: ["container", "cpu", "diskio", "healthcheck", "info", "memory", "network"]
+    hosts: ["unix:///var/run/docker.sock"]
+    period: 10s
+    enabled: true
+    processors:
+      - add_fields:
+          target: lab
+          fields:
+            scenario: "monitoramento-basico"
+
+  - module: system
+    enabled: true
+    period: 10s
+    processes: ['.*']
+    metricsets:
+      - cpu
+      - memory
+      - network
+      - process
+      - process_summary
+      - socket_summary
+    hostfs: "/hostfs"

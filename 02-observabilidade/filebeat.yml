@@ -1,0 +1,28 @@
+filebeat.inputs:
+  - type: filestream
+    id: docker-logs
+    enabled: true
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    parsers:
+      - ndjson:
+          overwrite_keys: true
+    processors:
+      - add_docker_metadata: ~
+      - decode_json_fields:
+          fields: ["message"]
+          target: "json"
+          overwrite_keys: true
+      - add_fields:
+          target: lab
+          fields:
+            scenario: "observabilidade"
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  protocol: "http"
+
+setup.kibana:
+  host: "kibana:5601"
+
+logging.level: info

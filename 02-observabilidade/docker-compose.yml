@@ -1,0 +1,75 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsv-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9220:9200"
+    volumes:
+      - esdata02:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 50
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsv-kb
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5621:5601"
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsv-apm
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    volumes:
+      - ./apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    ports:
+      - "8200:8200"
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsv-filebeat
+    user: root
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["-e"]
+
+  app-java:
+    build:
+      context: ./app-java
+      dockerfile: Dockerfile
+    image: obsv/app-java:latest
+    container_name: obsv-app
+    environment:
+      - SERVER_PORT=8080
+      - APM_SERVER_URL=http://apm-server:8200
+      - APM_SERVICE_NAME=app-java-lab
+      - APM_ENVIRONMENT=lab
+      - APM_VERIFY_SERVER_CERT=false
+    ports:
+      - "8088:8080"
+    depends_on:
+      apm-server:
+        condition: service_started
+
+volumes:
+  esdata02:
