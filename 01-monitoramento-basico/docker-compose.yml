@@ -36,6 +36,7 @@ services:
         condition: service_healthy
     volumes:
       - ./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - ./modules.d:/usr/share/metricbeat/modules.d:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro
@@ -43,6 +44,7 @@ services:
     environment:
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_PORT=9200
-    command: ["-e"]
+    command: ["-e", "-strict.perms=false"]
+
 volumes:
   esdata01:
