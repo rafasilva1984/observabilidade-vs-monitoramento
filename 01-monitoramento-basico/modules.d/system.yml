@@ -1,0 +1,12 @@
+- module: system
+  enabled: true
+  period: 10s
+  metricsets:
+    - cpu
+    - memory
+    - network
+    - process
+    - process_summary
+    - socket_summary
+  hostfs: "/hostfs"
+  processes: ['.*']
