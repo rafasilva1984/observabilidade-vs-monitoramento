@@ -26,6 +26,11 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports:
       - "5621:5601"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
 
   apm-server:
     image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-8.14.3}
@@ -45,7 +50,7 @@ services:
       timeout: 5s
       retries: 60
 
-  # Roda "filebeat setup" uma única vez para carregar templates/ILM/pipelines
+  # Executa "filebeat setup" uma vez para carregar ILM/templates/pipelines
   filebeat-setup:
     image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
     container_name: obsmon-filebeat-setup
@@ -59,6 +64,8 @@ services:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     command: ["setup", "-e",
       "-strict.perms=false",
+      "-E", "setup.ilm.overwrite=true",
+      "-E", "setup.dashboards.enabled=false",
       "-E", "setup.kibana.host=kibana:5601",
       "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
     ]
