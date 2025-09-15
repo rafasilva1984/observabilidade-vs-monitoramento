@@ -1,4 +1,3 @@
-# Coleta logs de TODOS os containers (inclui app-java-lab)
 filebeat.inputs:
   - type: container
     enabled: true
@@ -11,18 +10,10 @@ filebeat.inputs:
           fields:
             scenario: "observabilidade"
 
-# Setup só para ILM/templates (dashboards desabilitados p/ evitar depender do Kibana)
 setup.dashboards.enabled: false
 setup.ilm.overwrite: true
 
-# Kibana interno (mantemos configurado, mas dashboards estão off)
-setup.kibana:
-  host: "kibana:5601"
-
-# Saída para o Elasticsearch INTERNO do Compose (porta 9200 interna)
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
-  protocol: "http"
 
-# Pode voltar para "info" depois de validar
 logging.level: warning
