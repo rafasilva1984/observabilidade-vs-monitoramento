@@ -11,7 +11,7 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 ENV JAVA_OPTS=""
 # Baixa o Elastic APM Java agent (para traces). Em caso de falha de CA, o agente usará verify_server_cert=false via env.
-RUN curl -fsSL -o elastic-apm-agent.jar https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.48.0/elastic-apm-agent-1.48.0.jar
+RUN curl -fsSL -k -o elastic-apm-agent.jar https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.48.0/elastic-apm-agent-1.48.0.jar
 COPY --from=build /app/target/app-java-*.jar app.jar
 EXPOSE 8080
 ENV SERVER_PORT=8080
