@@ -61,6 +61,7 @@ services:
       - ./apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
     ports:
       - "8200:8200"
+    command: ["apm-server","-e","-strict.perms=false","-c","/usr/share/apm-server/apm-server.yml"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8200/"]
       interval: 10s
