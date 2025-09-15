@@ -41,7 +41,7 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    command: ["setup", "-e",
+    command: ["apm-server", "setup", "-e",
       "-E", "setup.kibana.host=kibana:5601",
       "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
     ]
