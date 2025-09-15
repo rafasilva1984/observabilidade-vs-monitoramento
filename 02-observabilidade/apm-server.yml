@@ -1,15 +1,12 @@
 apm-server:
   host: "0.0.0.0:8200"
-  rum:
-    enabled: true
 
 output.elasticsearch:
-  hosts: ["http://elasticsearch:9200"]
+  hosts: ["http://elasticsearch:9200"]   # porta interna
   protocol: "http"
 
 kibana:
   enabled: true
-  host: "kibana:5601"
+  host: "kibana:5601"                    # porta interna
 
-queue: { }
 logging.level: info
