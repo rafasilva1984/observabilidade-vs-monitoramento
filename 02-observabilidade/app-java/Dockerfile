@@ -1,15 +1,20 @@
-# ---------- BUILD ----------
-FROM maven:3.9-eclipse-temurin-17 AS build
-WORKDIR /app
+# ---------- BUILD (sem Maven) ----------
+FROM eclipse-temurin:17-jdk AS build
+WORKDIR /work
 
-# Copia POM e código-fonte (sem go-offline)
-COPY pom.xml .
+# Copia código-fonte simples (JDK puro)
 COPY src ./src
 
-# Build com BYPASS SSL no Maven
-RUN mvn -q -e -B -DskipTests package \
-    -Dmaven.wagon.http.ssl.insecure=true \
-    -Dmaven.wagon.http.ssl.allowall=true
+# Compila as classes
+RUN mkdir -p /app/classes && \
+    find ./src -name "*.java" > sources.txt && \
+    javac -d /app/classes @sources.txt
+
+# Empacota em um JAR executável (main-class definida abaixo)
+RUN mkdir -p /app && \
+    jar --create --file /app/app.jar \
+        --main-class com.observabilidade.lab.AppJavaApplication \
+        -C /app/classes .
 
 # ---------- RUNTIME ----------
 FROM eclipse-temurin:17-jre
@@ -17,7 +22,7 @@ WORKDIR /app
 ENV JAVA_OPTS=""
 
 # App
-COPY --from=build /app/target/app-java-*.jar app.jar
+COPY --from=build /app/app.jar app.jar
 
 # APM agent (bypass CA no download)
 RUN curl -fsSL -k -o elastic-apm-agent.jar \
@@ -37,4 +42,4 @@ ENTRYPOINT ["sh","-c","java -javaagent:/app/elastic-apm-agent.jar \
   -Delastic.apm.service_name=${APM_SERVICE_NAME} \
   -Delastic.apm.environment=${APM_ENVIRONMENT} \
   -Delastic.apm.verify_server_cert=${APM_VERIFY_SERVER_CERT} \
-  -jar app.jar --server.port=${SERVER_PORT} ${JAVA_OPTS}"]
+  -jar app.jar ${JAVA_OPTS}"]
