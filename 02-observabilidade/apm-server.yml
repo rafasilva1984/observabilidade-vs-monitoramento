@@ -1,12 +1,9 @@
 apm-server:
   host: "0.0.0.0:8200"
 
+# Em 7.17 usamos índices "apm-*" (não data streams)
+# O 'setup' acima cria templates/ILM automaticamente via Kibana/ES.
 output.elasticsearch:
-  hosts: ["http://elasticsearch:9200"]   # porta interna (entre containers)
-  protocol: "http"
-
-kibana:
-  enabled: true
-  host: "kibana:5601"                    # porta interna (entre containers)
+  hosts: ["http://elasticsearch:9200"]
 
 logging.level: info
