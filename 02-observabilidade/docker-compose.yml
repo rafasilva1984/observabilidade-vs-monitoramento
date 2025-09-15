@@ -32,6 +32,21 @@ services:
       timeout: 5s
       retries: 60
 
+  # Instala templates/ILM/dashboards da APM (sem Fleet), após Kibana ficar saudável
+  apm-setup:
+    image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsv-apm-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    command: ["setup", "-e",
+      "-E", "setup.kibana.host=kibana:5601",
+      "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
+    ]
+    restart: "no"
+
   apm-server:
     image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-8.14.3}
     container_name: obsv-apm
@@ -40,6 +55,8 @@ services:
         condition: service_healthy
       kibana:
         condition: service_started
+      apm-setup:
+        condition: service_completed_successfully
     volumes:
       - ./apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
     ports:
@@ -50,7 +67,7 @@ services:
       timeout: 5s
       retries: 60
 
-  # Executa "filebeat setup" uma vez para carregar ILM/templates/pipelines
+  # Executa apenas index-management (templates/ILM) do Filebeat; não depende do Kibana
   filebeat-setup:
     image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
     container_name: obsmon-filebeat-setup
@@ -58,15 +75,11 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
-      kibana:
-        condition: service_started
     volumes:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-    command: ["setup", "-e",
+    command: ["setup", "--index-management", "-e",
       "-strict.perms=false",
       "-E", "setup.ilm.overwrite=true",
-      "-E", "setup.dashboards.enabled=false",
-      "-E", "setup.kibana.host=kibana:5601",
       "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
     ]
     restart: "no"
