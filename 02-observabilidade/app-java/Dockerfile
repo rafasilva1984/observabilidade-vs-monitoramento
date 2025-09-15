@@ -2,19 +2,11 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copia POM e resolve dependências em cache, com BYPASS SSL
+# Copia POM e código-fonte (sem go-offline)
 COPY pom.xml .
-RUN mvn -q -e -B -DskipTests dependency:go-offline \
-    -Dmaven.wagon.http.ssl.insecure=true \
-    -Dmaven.wagon.http.ssl.allowall=true
-
-# (Opcional) Baixar o APM agent no build em vez de usar curl no runtime
-# RUN mvn -q -e -B -DskipTests dependency:get \
-#     -Dartifact=co.elastic.apm:elastic-apm-agent:1.48.0 \
-#     -Dmaven.wagon.http.ssl.insecure=true \
-#     -Dmaven.wagon.http.ssl.allowall=true
-
 COPY src ./src
+
+# Build com BYPASS SSL no Maven
 RUN mvn -q -e -B -DskipTests package \
     -Dmaven.wagon.http.ssl.insecure=true \
     -Dmaven.wagon.http.ssl.allowall=true
@@ -27,13 +19,9 @@ ENV JAVA_OPTS=""
 # App
 COPY --from=build /app/target/app-java-*.jar app.jar
 
-# APM agent:
-# Opção A (runtime com curl BYPASS SSL) — simples para lab
+# APM agent (bypass CA no download)
 RUN curl -fsSL -k -o elastic-apm-agent.jar \
   https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.48.0/elastic-apm-agent-1.48.0.jar
-
-# Opção B (sem internet no runtime) — descomente estas duas linhas e comente a opção A acima
-# COPY --from=build /root/.m2/repository/co/elastic/apm/elastic-apm-agent/1.48.0/elastic-apm-agent-1.48.0.jar elastic-apm-agent.jar
 
 EXPOSE 8080
 
