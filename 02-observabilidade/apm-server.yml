@@ -2,11 +2,11 @@ apm-server:
   host: "0.0.0.0:8200"
 
 output.elasticsearch:
-  hosts: ["http://elasticsearch:9200"]   # porta interna
+  hosts: ["http://elasticsearch:9200"]   # porta interna (entre containers)
   protocol: "http"
 
 kibana:
   enabled: true
-  host: "kibana:5601"                    # porta interna
+  host: "kibana:5601"                    # porta interna (entre containers)
 
 logging.level: info
