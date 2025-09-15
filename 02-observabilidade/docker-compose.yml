@@ -1,6 +1,6 @@
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-8.14.3}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-7.17.22}
     container_name: obsv-es
     environment:
       - discovery.type=single-node
@@ -11,13 +11,13 @@ services:
     volumes:
       - esdata02:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:9200/_cluster/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
       interval: 10s
       timeout: 5s
       retries: 60
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION:-8.14.3}
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION:-7.17.22}
     container_name: obsv-kb
     depends_on:
       elasticsearch:
@@ -32,14 +32,31 @@ services:
       timeout: 5s
       retries: 60
 
+  # Carrega templates/ILM do APM (sem Fleet/segurança)
+  apm-setup:
+    image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-7.17.22}
+    container_name: obsv-apm-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    command: ["apm-server", "setup", "-e",
+      "-E", "setup.kibana.host=kibana:5601",
+      "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
+    ]
+    restart: "no"
+
   apm-server:
-    image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-8.14.3}
+    image: docker.elastic.co/apm/apm-server:${ELASTIC_VERSION:-7.17.22}
     container_name: obsv-apm
     depends_on:
       elasticsearch:
         condition: service_healthy
       kibana:
         condition: service_started
+      apm-setup:
+        condition: service_completed_successfully
     volumes:
       - ./apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
     ports:
@@ -50,9 +67,9 @@ services:
       timeout: 5s
       retries: 60
 
-  # Executa apenas index-management (templates/ILM) do Filebeat; não depende do Kibana
+  # Carrega templates/ILM/pipelines do Filebeat (sem depender do Kibana)
   filebeat-setup:
-    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-7.17.22}
     container_name: obsmon-filebeat-setup
     user: root
     depends_on:
@@ -68,7 +85,7 @@ services:
     restart: "no"
 
   filebeat:
-    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-7.17.22}
     container_name: obsmon-filebeat
     user: root
     depends_on:
@@ -93,7 +110,6 @@ services:
       - APM_VERIFY_SERVER_CERT=false
     ports:
       - "8088:8080"
-    # não travar a subida por causa do APM; o agente tenta reconectar
     depends_on:
       apm-server:
         condition: service_started
