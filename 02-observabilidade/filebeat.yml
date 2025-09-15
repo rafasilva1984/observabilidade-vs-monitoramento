@@ -11,11 +11,14 @@ filebeat.inputs:
           fields:
             scenario: "observabilidade"
 
-# (Opcional) dashboards no Kibana
+# Carrega dashboards (opcional) e garante que o setup fala com o Kibana interno
 setup.kibana:
   host: "kibana:5601"
 
+# Saída para o ES interno do compose (porta interna 9200)
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
-  # Lab sem TLS/usuário. Em produção, habilite segurança.
   protocol: "http"
+
+# Log um pouco mais verboso enquanto valida (pode voltar para info depois)
+logging.level: warning
