@@ -56,8 +56,7 @@ Acesse: **Kibana → Dashboards → Metricbeat**.
 
 ## Gerar pico de CPU (para ver acontecer)
 ```bash
-docker run --rm --name stress alpine sh -c \
-  "apk add --no-cache stress-ng >/dev/null && stress-ng --cpu 1 --timeout 60s"
+docker run --rm --name stress busybox sh -c "yes > /dev/null & sleep 60"
 ```
 
 ## Mensagem-chave do Lab 01
