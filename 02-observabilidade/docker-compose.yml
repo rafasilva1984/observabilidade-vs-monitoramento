@@ -14,7 +14,7 @@ services:
       test: ["CMD", "curl", "-fsS", "http://localhost:9200/_cluster/health"]
       interval: 10s
       timeout: 5s
-      retries: 50
+      retries: 60
 
   kibana:
     image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION:-8.14.3}
@@ -43,15 +43,34 @@ services:
       test: ["CMD", "curl", "-fsS", "http://localhost:8200/"]
       interval: 10s
       timeout: 5s
-      retries: 50
+      retries: 60
+
+  # Roda "filebeat setup" uma única vez para carregar templates/ILM/pipelines
+  filebeat-setup:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
+    container_name: obsmon-filebeat-setup
+    user: root
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    command: ["setup", "-e",
+      "-strict.perms=false",
+      "-E", "setup.kibana.host=kibana:5601",
+      "-E", "output.elasticsearch.hosts=[http://elasticsearch:9200]"
+    ]
+    restart: "no"
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION:-8.14.3}
     container_name: obsmon-filebeat
     user: root
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      filebeat-setup:
+        condition: service_completed_successfully
     volumes:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
